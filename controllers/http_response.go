@@ -20,7 +20,24 @@ const (
 	HTTPErrCode1001
 )
 
-// for Message
+// For Message
 var (
 	HTTPErrMsg map[int]string
 )
+
+// ReturnError  ...
+func (HTTPResponse) ReturnError(code int, msg string) *HTTPResponse {
+	return &HTTPResponse{
+		Result:  STRError,
+		Code:    code,
+		Message: msg,
+	}
+}
+
+// ReturnSuccess ...
+func (HTTPResponse) ReturnSuccess(result interface{}) *HTTPResponse {
+	return &HTTPResponse{
+		Result: STRSuccess,
+		Data:   result,
+	}
+}

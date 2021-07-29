@@ -13,8 +13,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/jblim0125/golang-web-platform/common/appdata"
-	"github.com/jblim0125/golang-web-platform/models"
+	"github.com/mobigen/golang-web-template/common/appdata"
+	"github.com/mobigen/golang-web-template/models"
 	"github.com/sirupsen/logrus"
 )
 
@@ -171,7 +171,7 @@ func (ds *DataStore) CreateLogger(conf *appdata.DatastoreConfiguration) (
 // Migrate database migration
 func (ds *DataStore) Migrate() error {
 	// Migrate the schema
-	ds.Orm.AutoMigrate(&models.Todo{})
+	ds.Orm.AutoMigrate(&models.Sample{})
 
 	// ds.Orm.Config.DisableForeignKeyConstraintWhenMigrating = true
 	// ds.Orm.Config.DisableForeignKeyConstraintWhenMigrating = false

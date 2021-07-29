@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jblim0125/golang-web-platform/common"
-	"github.com/jblim0125/golang-web-platform/common/appdata"
-	"github.com/jblim0125/golang-web-platform/infrastructures/datastore"
-	"github.com/jblim0125/golang-web-platform/infrastructures/router"
-	"github.com/jblim0125/golang-web-platform/injectors"
+	"github.com/mobigen/golang-web-template/common"
+	"github.com/mobigen/golang-web-template/common/appdata"
+	"github.com/mobigen/golang-web-template/infrastructures/datastore"
+	"github.com/mobigen/golang-web-template/infrastructures/router"
+	"github.com/mobigen/golang-web-template/injectors"
 
 	"github.com/sirupsen/logrus"
 )
@@ -273,6 +273,16 @@ func (c *Context) StopSubModules() {
 	// TODO : 사용하는 서브 모듈(Goroutine)들이 안전하게 종료 될 수 있도록 종료 코드를 추가한다.
 }
 
+// @title Golang Web Template API
+// @version 1.0.0
+// @description This is a golang web template server.
+
+// @contact.name API Support
+// @contact.url http://mobigen.com
+// @contact.email irisdev@mobigen.com
+
+// @host localhost:8080
+// @BashPath /
 func main() {
 	// Initialize Sub module And Read Env, Config
 	c, err := Initialize()

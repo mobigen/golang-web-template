@@ -15,11 +15,11 @@ DOCKER_BASE_IMAGE = alpine:3.13.2
 # program name and version info 
 TARGET := test
 VERSION := v1.0.0
+IMAGE ?= repo.iris.tools/iris/web-server:$(VERSION)
 
 ################################################################################
 
 GO ?= $(shell command -v go 2> /dev/null)
-IMAGE ?= repo.iris.tools/iris/web-server:$(VERSION)
 MACHINE = $(shell uname -m)
 GOFLAGS ?= $(GOFLAGS:)
 BUILD_TIME := $(shell date -u +%Y%m%d.%H%M%S)
@@ -27,9 +27,10 @@ BUILD_HASH := $(shell git rev-parse --short HEAD)
 
 ################################################################################
 
-LDFLAGS += -X 'github.com/jblim0125/golang-web-platform/common/appdata.Name=$(TARGET)'
-LDFLAGS += -X 'github.com/jblim0125/golang-web-platform/common/appdata.Version=$(VERSION)'
-LDFLAGS += -X 'github.com/jblim0125/golang-web-platform/common/appdata.BuildHash=$(BUILD_HASH)'
+MODULE_NAME := $(shell head -1 go.mod | awk '{print $$2}')
+LDFLAGS += -X '$(MODULE_NAME)/common/appdata.Name=$(TARGET)'
+LDFLAGS += -X '$(MODULE_NAME)/common/appdata.Version=$(VERSION)'
+LDFLAGS += -X '$(MODULE_NAME)/common/appdata.BuildHash=$(BUILD_HASH)'
 
 # Binaries.
 TOOLS_BIN_DIR := $(abspath bin)
@@ -93,9 +94,13 @@ build-image:  ## Build the docker image
 	. -f build/Dockerfile -t $(IMAGE) \
 	--no-cache
 
-.PHONY: install
-install: build
-	go install ./...
+
+HOME = $(shell pwd)
+PROFILE = "prod"
+.PHONY: run
+run: 
+	mkdir -p db &&  \
+	HOME=$(HOME) PROFILE=$(PROFILE) ./build/bin/test
 
 # Generate mocks from the interfaces.
 .PHONY: mocks

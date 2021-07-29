@@ -7,3 +7,10 @@ var (
 	Version   string = "-"
 	BuildHash string = "-"
 )
+
+// VersionInfo app version info
+type VersionInfo struct {
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	BuildHash string `json:"buildHash"`
+}

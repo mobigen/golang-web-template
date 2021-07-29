@@ -10,6 +10,10 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
+
+	// For Swagger
+	_ "github.com/mobigen/golang-web-template/docs"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 // Router echo.Echo
@@ -75,6 +79,9 @@ func Init(log *logrus.Logger, debug bool) (r *Router, err error) {
 	r.Use(stats.Process)
 	r.GET("/stats", stats.StatsHandle)
 	r.Stats = stats
+
+	// Swager
+	r.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	r.HideBanner = true
 	r.HidePort = true

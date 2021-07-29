@@ -3,7 +3,7 @@ package datastore
 import (
 	"testing"
 
-	"github.com/jblim0125/golang-web-platform/common/appdata"
+	"github.com/mobigen/golang-web-template/common/appdata"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

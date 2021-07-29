@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jblim0125/golang-web-platform/common/appdata"
+	"github.com/mobigen/golang-web-template/common/appdata"
 	formatter "github.com/mobigen/gologger"
 	"github.com/sirupsen/logrus"
 )
