@@ -1,46 +1,202 @@
-# Test 
-테스트는 단위 테스트와 통합 테스트로 구분하고, 필요한 interface에 대해서는 mock을 이용해 처리한다.  
+# Test  
+---
+Golang에서 Test   
 
-* 단위 테스트  
-	설계 단계에서 우리는 관심사(업무)별 계층을 분리하고 인터페이스로 실 구현체와의 연결성을 제거하였다. 
-	그러나 아래 그림과 같이 유닛 테스트를 진행 시 service, repository 객체가 필요하다. 
-	![UnitTest1Img](./img/unit_test-1.png)
-	위와 같은 문제를 mockery를 이용해 자동으로 mock 생성하여 처리한다.  
-	mockery는 각 객체에서 정의한 의존성(type xxx interface{})내용을 기반으로 mock을 생성하며, 
-	mock object 설정을 이용해 원하는 결과를 반환하도록 설정이 가능하다.  
-	( 즉, 테스트에 필요한 반환 값은 작성해야 한다. )
-	결국 아래와 같이 의존성 부분을 mock으로 대체하고 원하는 코드의 테스트가 가능해진다.  
-	![UnitTest2Img](./img/unit_test-2.png)  
+## 개요  
+* golang/mock 프레임워크 이용하기  
+* stretchr/testify/mock 프레임워크 이용하기  
 
-* mockery 사용 방법  
-	- install mockery  
-	```bash
-	$ sudo su 
-	$ go get github.com/vektra/mockery/v2/.../
-	```
-	- mock 생성  
-	all 명령을 이용한 소스 전체 mock 생성  
-	```bash
-	$ mockery --all --keeptree
-	```
-	- 특정 interface의 mock 생성  
-	```bash
-	$ mockery --dir {path} --name {name of interface} --keeptree
-	```
-* Unit Test Sample  
+Golang은 투명한 동작과 엄격한 타입이 특징인 만큼 Go에서는 Mocking을 
+이용하는 것은 다른 언어에 비해 쉬운 편은 아닌 것처럼 느껴지기도 합니다.  
 
-### 통합테스트
+* interface로 선언된 변수에만 mock type을 할당할 수 있다.  
+( 그래서 우리는 레이어 구조를 만들면서 각 레이거간 의존성을 인터페이스로 만들었습니다. )   
+* mock type을 직접 정의하거나 mocking framework을 이용해 코드를 생성한다.  
+( framework를 사용하더라도 내부는 직접 작성하고 실행해야 한다. )  
+
+## gomock과 testify/mock 의 비교 
+GoMock vs. Testify: Mocking frameworks for Go  
+[Link](https://blog.codecentric.de/2019/07/gomock-vs-testify/)  
+위 링크에 내용이 잘 정리되어있으니 참고해보세요.( 영문사이트... )  
+
+두 진영 비교  
+[Star](https://umi0410.github.io/blog/golang/how-to-backend-in-go-testcode/star-comparison.png)  
+최재호 책임의 의견처럼 우리는 어떤 진영을 선택할지는 중요하지 않습니다.  
+테스트를 만드는 것은 우리의 몫이기 때문입니다.  
+
+이제 두 진영의 사용 방법에 대해서 확인해 보겠습니다.  
+
+## golang/mock  
+---
+1. 설치  
+    ```bash
+    $ go get github.com/golang/mock/gomock@v1.6.0
+    $ go get github.com/golang/mock/mockgen
+    ## 참고 : mockgen 설치 시 root 권한이 필요할 수 있다.  
+    ```
+    mockgen 설치 확인  
+    ```bash
+    $ mockgen -version
+    ```
+
+2. 아주 간단한 예제    
+    doer, user로 구성된 아주 간략한 프로그램  
+    doer는 interface이며, user에서 doer를 사용  
+    ( user가 시험 대상 )  
+    * prepare  
+        ```bash
+        $ mkdir -p gomock && cd gomock && go mod init testing-with-gomock && mkdir -p doer && \
+          mkdir -p user && go get github.com/golang/mock/gomock@v1.6.0
+        ```
+    * doer : interface  
+        ```bash
+        $ echo 'package doer
+        type Doer interface { 
+            DoSomething(int, string) error 
+        }' > doer/doer.go
+        ```
+    * user  
+        ```bash
+        $ echo 'package user
+        import "testing-with-gomock/doer"
+        type User struct {
+            Doer doer.Doer
+        }
+        func (u *User) Use() error {
+            return u.Doer.DoSomething(123, "Hello GoMock")
+        }' > user/user.go
+        ```
+    * mock 생성  
+        ```bash
+        $ mkdir -p mocks
+        $ mockgen -destination=mocks/mock_doer.go -package=mocks -source=doer/doer.go 
+        ```
+    * test  
+        ```bash
+        $ echo 'package user
+        import (
+                "testing"
+                "testing-with-gomock/mocks"
+                "github.com/golang/mock/gomock"
+        )
+
+        func TestUse(t *testing.T) {
+                mockCtrl := gomock.NewController(t)
+                defer mockCtrl.Finish()
+
+                mockDoer := mocks.NewMockDoer(mockCtrl)
+                testUser := &User{Doer: mockDoer}
+
+                // mock의 Dosomething 호출 시 인자값이 123, "Hello GoMock"을 수신하길 기대 함. 
+                mockDoer.EXPECT().DoSomething(123, "Hello GoMock").Return(nil).Times(1)
+
+                // User에서 use는 doer의 dosomething 호출에서 123, Hello GoMock를 인자로 전달하고 있어 테스트는 성공한다.  
+                testUser.Use()
+        }' > user/user_test.go
+        ```
+    * go test  
+        ```bash
+        $ go test -v ./user/user_test.go
+        === RUN   TestUse
+        --- PASS: TestUse (0.00s)
+        PASS
+        ok  	command-line-arguments	0.397s
+        ```
+## testify/mock  
+---
+1. 설치  
+    ```bash
+    $ go get github.com/stretchr/testify/mock
+    $ go get github.com/vektra/mockery/.../
+    ## 권한 오류가 발생할 수 있다. 그런 경우 root 유저로 실행한다.  
+    ```
+2. 아주 간단한 예제  
+    golang/mock과 코드는 동일하다. 그러나 test 코드 작성에서 차이가 있다.  
+    * prepare  
+        ```bash
+        $ mkdir -p testify-mock && cd testify-mock && go mod init testify-mock 
+        $ go get github.com/stretchr/testify/assert
+        $ go get github.com/stretchr/testify/require
+        $ go get github.com/stretchr/testify/mock
+        $ mkdir -p doer && mkdir -p user 
+        ```
+    * doer : interface  
+        ```bash
+        $ echo 'package doer
+        type Doer interface { 
+            DoSomething(int, string) error 
+        }' > doer/doer.go
+        ```
+    * user  
+        ```bash
+        $ echo 'package user
+        import "testify-mock/doer"
+        type User struct {
+            Doer doer.Doer
+        }
+        func (u *User) Use() error {
+            return u.Doer.DoSomething(123, "Hello GoMock")
+        }' > user/user.go
+        ```
+    * mock 생성  
+        ```bash
+        $ mkdir -p mocks
+        $ mockery -dir doer -name Doer
+        ```
+    * test 
+        ```bash
+        $ echo 'package user
+        import (
+        
+        )
+        func TestUserWithTestifyMock(t *testing.T) {
+            mockDoer := &mocks.Doer{}
+
+            testUser := &User{Doer:mockDoer}
+
+            mockDoer.On("DoSomething", 123, "Hello GoMock").Return(nil).Once()
+
+            testUser.Use()
+
+            mockDoer.AssertExpectations(t)
+        }' > user/user_test.go
+        ```
+    * run test
+        ```bash
+        $ go test -v ./user
+        === RUN   TestUserWithTestifyMock
+            user_test.go:17: PASS:      DoSomething(int,string)
+        --- PASS: TestUserWithTestifyMock (0.00s)
+        PASS
+        ok      testify-mock/user       (cached)
+        ```
+
+## 비교  
+---
+...
+...
+
+## 추가 
+---
+* mock 생성 팁  
+아래와 같이 주석을 추가  
+```go
+package doer
+
+//go:generate mockgen -destination=../mocks/mock_doer.go -package=mocks testing-with-gomock/doer Doer
+
+type Doer interface {
+	DoSomething(int, string) error
+}
 ```
-고랭 testing과 echo(controller 사용을 위해)를 사용하여 테스트하며
-영속성 계층이 의존하는 db만(직접 mock을 생성해 변경), 주입하여 테스트한다.
-
-모든계층을 테스트 할 수 있으며, db만 같다면 실제 운영환경과 같은 환경으로 테스트가 가능하다.
-(운영환경과 db까지 같은환경을 원한다면 db도 변경없이 테스트한다.)
-
-원하는 계층의 mock을 직접 생성하면 단위테스트도 할 수있지만
- 
-mock객체 생성은 mockery 라이브러리를 이용한다. 
+프로젝트 루트 디렉토리에서 다음 명령으로 mock 생성이 가능하다.  
+```bash
+$ go generate ./...
 ```
+
+## Echo Framework + Testing   
+...
+...
 
 ## Sonarqube  
 - sonarqube config 파일

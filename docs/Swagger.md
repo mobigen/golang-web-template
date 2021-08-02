@@ -94,6 +94,7 @@ $ swag init
 ```bash
 $ swag init --parseDependency --parseInternal
 ```
+
 ## 빌드
 ---
 ```bash

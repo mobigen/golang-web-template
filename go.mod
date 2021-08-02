@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
+	github.com/axw/gocov v1.0.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // File Event
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
@@ -13,6 +14,7 @@ require (
 	github.com/jackc/pgx/v4 v4.12.0 // indirect
 	github.com/labstack/echo/v4 v4.4.0 // web-server framework
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/matm/gocov-html v0.0.0-20200509184451-71874e2e203b // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mobigen/gologger v1.0.0 // Log
 	github.com/sirupsen/logrus v1.8.1 // Log

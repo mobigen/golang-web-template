@@ -1,21 +1,13 @@
 # Copyright (c) 2021 Mobigen JBLIM. All Rights Reserved.
 
 ################################################################################
-##                             Docker PARAMS                                 ##
-################################################################################
-
-## Docker Build Versions
-DOCKER_BUILD_IMAGE = golang:1.16.2
-DOCKER_BASE_IMAGE = alpine:3.13.2
-
-################################################################################
 ##                             PROGRAM PARAMS                                 ##
 ################################################################################
 
 # program name and version info 
 TARGET := test
 VERSION := v1.0.0
-IMAGE ?= repo.iris.tools/iris/web-server:$(VERSION)
+IMAGE ?= repo.iris.tools/iris/$(TARGET):$(VERSION)
 
 ################################################################################
 
@@ -32,6 +24,14 @@ LDFLAGS += -X '$(MODULE_NAME)/common/appdata.Name=$(TARGET)'
 LDFLAGS += -X '$(MODULE_NAME)/common/appdata.Version=$(VERSION)'
 LDFLAGS += -X '$(MODULE_NAME)/common/appdata.BuildHash=$(BUILD_HASH)'
 
+################################################################################
+##                             Docker PARAMS                                 ##
+################################################################################
+
+## Docker Build Versions
+DOCKER_BUILD_IMAGE = golang:1.16.2
+DOCKER_BASE_IMAGE = alpine:3.13.2
+
 # Binaries.
 TOOLS_BIN_DIR := $(abspath bin)
 GO_INSTALL = ./scripts/go_install.sh
@@ -40,13 +40,17 @@ MOCKGEN_VER := v1.4.3
 MOCKGEN_BIN := mockgen
 MOCKGEN := $(TOOLS_BIN_DIR)/$(MOCKGEN_BIN)-$(MOCKGEN_VER)
 
+GOCOV_VER := latest
+GOCOV_BIN := gocov
+GOCOV_GEN := $(TOOLS_BIN_DIR)/$(GOCOV_BIN)
+
+GOCOV-HTML_VER := latest
+GOCOV-HTML_BIN := gocov-html
+GOCOV-HTML_GEN := $(TOOLS_BIN_DIR)/$(GOCOV-HTML_BIN)
+
 OUTDATED_VER := master
 OUTDATED_BIN := go-mod-outdated
 OUTDATED_GEN := $(TOOLS_BIN_DIR)/$(OUTDATED_BIN)
-
-GOVERALLS_VER := master
-GOVERALLS_BIN := goveralls
-GOVERALLS_GEN := $(TOOLS_BIN_DIR)/$(GOVERALLS_BIN)
 
 GOLINT_VER := master
 GOLINT_BIN := golint
@@ -94,37 +98,43 @@ build-image:  ## Build the docker image
 	. -f build/Dockerfile -t $(IMAGE) \
 	--no-cache
 
-
+## For Dev Run
 HOME = $(shell pwd)
 PROFILE = "prod"
 .PHONY: run
 run: 
 	mkdir -p db &&  \
-	HOME=$(HOME) PROFILE=$(PROFILE) ./build/bin/test
+	HOME=$(HOME) PROFILE=$(PROFILE) ./build/bin/$(TARGET)
 
 # Generate mocks from the interfaces.
 .PHONY: mocks
 mocks:  $(MOCKGEN)
 	go generate ./...
 
-.PHONY: check-modules
-check-modules: $(OUTDATED_GEN) ## Check outdated modules
-	@echo Checking outdated modules
-	$(GO) list -u -m -json all | $(OUTDATED_GEN) -update -direct
-
-.PHONY: goverall
-goverall: $(GOVERALLS_GEN) ## Runs goveralls
-	$(GOVERALLS_GEN) -coverprofile=coverage.out -service=circle-ci -repotoken ${COVERALLS_REPO_TOKEN} || true
-
-.PHONY: unittest
-unittest:
-	$(GO) test ./... -v -covermode=count -coverprofile=coverage.out
-
 .PHONY: verify-mocks
 verify-mocks:  $(MOCKGEN) mocks
 	@if !(git diff --quiet HEAD); then \
 		echo "generated files are out of date, run make mocks"; exit 1; \
 	fi
+
+.PHONY: unittest
+unittest:
+	$(GO) test ./... -v -covermode=count -coverprofile=coverage.out
+
+.PHONY: gocov 
+gocov: $(GOCOV_GEN) ## Runs gocov
+	$(GOCOV_GEN) test ./... | gocov-html > cov-out.html 
+
+.PHONY: check-modules
+check-modules: $(OUTDATED_GEN) ## Check outdated modules
+	@echo Checking outdated modules
+	$(GO) list -u -m -json all | $(OUTDATED_GEN) -update -direct
+
+
+## Clean Cache
+.PHONY: clean
+clean: 
+	go clean -i -cache -testcache
 
 ## --------------------------------------
 ## Tooling Binaries
@@ -136,8 +146,11 @@ $(MOCKGEN): ## Build mockgen.
 $(OUTDATED_GEN): ## Build go-mod-outdated.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/psampaz/go-mod-outdated $(OUTDATED_BIN) $(OUTDATED_VER)
 
-$(GOVERALLS_GEN): ## Build goveralls.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/mattn/goveralls $(GOVERALLS_BIN) $(GOVERALLS_VER)
-
 $(GOLINT_GEN): ## Build golint.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) golang.org/x/lint/golint $(GOLINT_BIN) $(GOLINT_VER)
+
+## gocov, gocov-html.
+$(GOCOV_GEN): 
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/axw/gocov/gocov $(GOCOV_BIN) $(GOCOV_VER) && \
+		  GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/matm/gocov-html $(GOCOV-HTML_BIN) $(GOCOV-HTML_VER)
+
